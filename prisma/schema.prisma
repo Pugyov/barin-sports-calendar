@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("viewer")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model Task {
+  id               String           @id @default(cuid())
+  taskCode         String           @unique
+  topic            String
+  phaseRule        String?
+  owner            String?
+  workLink         String?
+  status           String?
+  statusNormalized String?          @default("planned")
+  notes            String?
+  startDate        DateTime?
+  dueDate          DateTime?
+  publishDate      DateTime?
+  rawTypeText      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  taskTypes        TaskType[]
+  importLinks      ImportBatchTask[]
+
+  @@index([publishDate])
+  @@index([dueDate])
+  @@index([startDate])
+  @@index([statusNormalized])
+}
+
+model TypeTag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  color     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  taskTypes TaskType[]
+}
+
+model TaskType {
+  taskId    String
+  typeTagId Int
+  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  typeTag   TypeTag @relation(fields: [typeTagId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, typeTagId])
+  @@index([typeTagId])
+}
+
+model ImportBatch {
+  id           String           @id @default(cuid())
+  fileName     String
+  importedBy   String?
+  dryRun       Boolean          @default(false)
+  createdCount Int              @default(0)
+  updatedCount Int              @default(0)
+  skippedCount Int              @default(0)
+  errorCount   Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  rowErrors    ImportRowError[]
+  taskLinks    ImportBatchTask[]
+}
+
+model ImportRowError {
+  id            String      @id @default(cuid())
+  importBatchId String
+  rowNumber     Int
+  taskCode      String?
+  message       String
+  createdAt     DateTime    @default(now())
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+
+  @@index([importBatchId])
+}
+
+model ImportBatchTask {
+  importBatchId String
+  taskId        String
+  action        String
+  createdAt     DateTime    @default(now())
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([importBatchId, taskId])
+  @@index([taskId])
+}
