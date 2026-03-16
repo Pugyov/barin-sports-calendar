@@ -24,6 +24,14 @@ describe("milestone derivation", () => {
     const events = deriveMilestones(tasks);
     expect(events).toHaveLength(3);
     expect(events.map((event) => event.kind)).toEqual(["START", "DUE", "PUB"]);
+    expect(events[0]).toMatchObject({
+      phaseRule: "Recurring",
+      owner: "owner@example.com",
+      status: "Done",
+      startDate: "2026-03-01",
+      dueDate: "2026-03-05",
+      publishDate: "2026-03-10"
+    });
   });
 
   it("skips missing milestone dates", () => {

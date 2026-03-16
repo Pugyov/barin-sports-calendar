@@ -32,8 +32,12 @@ export const authOptions: NextAuthOptions = {
           where: { email: parsed.data.email }
         });
 
-        if (!user || !user.isActive) {
+        if (!user) {
           return null;
+        }
+
+        if (!user.isActive) {
+          throw new Error("ACCOUNT_PENDING_APPROVAL");
         }
 
         const isValid = await compare(parsed.data.password, user.passwordHash);
@@ -43,6 +47,7 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
+          name: user.name,
           email: user.email,
           role: coerceRole(user.role)
         };
@@ -59,6 +64,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        if (typeof token.name === "string") {
+          session.user.name = token.name;
+        }
         session.user.role = coerceRole(typeof token.role === "string" ? token.role : undefined);
       }
       return session;

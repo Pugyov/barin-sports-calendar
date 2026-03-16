@@ -23,6 +23,12 @@ export type MilestoneEvent = {
   kind: MilestoneKind;
   date: string;
   types: string[];
+  phaseRule: string | null;
   owner: string | null;
+  workLink: string | null;
   status: string | null;
+  notes: string | null;
+  startDate: string | null;
+  dueDate: string | null;
+  publishDate: string | null;
 };

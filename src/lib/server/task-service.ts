@@ -44,6 +44,29 @@ function mapTask(task: Prisma.TaskGetPayload<{ include: { taskTypes: { include: 
   };
 }
 
+export function getNextTaskCodeFromValues(taskCodes: string[]): string {
+  const matchingCodes = taskCodes
+    .map((taskCode) => {
+      const match = /^BS-(\d+)$/i.exec(taskCode.trim());
+      if (!match) return null;
+
+      return {
+        number: Number(match[1]),
+        width: match[1].length
+      };
+    })
+    .filter((value): value is { number: number; width: number } => value !== null);
+
+  if (matchingCodes.length === 0) {
+    return "BS-001";
+  }
+
+  const maxNumber = Math.max(...matchingCodes.map((item) => item.number));
+  const width = Math.max(3, ...matchingCodes.map((item) => item.width));
+
+  return `BS-${String(maxNumber + 1).padStart(width, "0")}`;
+}
+
 async function ensureTypeTagIds(names: string[]): Promise<number[]> {
   const uniqueNames = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
   const ids: number[] = [];
@@ -152,6 +175,16 @@ export async function listTasks(rawFilters: TaskFilterInput = {}): Promise<TaskL
 export async function listTypeTags(): Promise<string[]> {
   const tags = await prisma.typeTag.findMany({ orderBy: { name: "asc" } });
   return tags.map((tag) => tag.name);
+}
+
+export async function getNextTaskCode(): Promise<string> {
+  const rows = await prisma.task.findMany({
+    select: {
+      taskCode: true
+    }
+  });
+
+  return getNextTaskCodeFromValues(rows.map((row) => row.taskCode));
 }
 
 export async function createTask(rawInput: unknown): Promise<TaskListItem> {

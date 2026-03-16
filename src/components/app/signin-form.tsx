@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export function SignInForm() {
     });
 
     if (!result || result.error) {
-      setError("Invalid email or password.");
+      setError(result?.error === "ACCOUNT_PENDING_APPROVAL" ? "Your account is waiting for admin approval." : "Invalid email or password.");
       setIsLoading(false);
       return;
     }
@@ -53,6 +54,13 @@ export function SignInForm() {
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Need access?{" "}
+        <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
+          Register here
+        </Link>
+      </p>
     </form>
   );
 }

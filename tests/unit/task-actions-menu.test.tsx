@@ -9,8 +9,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/app/pipeline/actions", () => ({
-  updateTaskAction: vi.fn(),
-  deleteTaskAction: vi.fn()
+  updateTaskFormAction: vi.fn(),
+  deleteTaskFormAction: vi.fn()
 }));
 
 import { TaskActionsMenu } from "@/components/app/task-actions-menu";

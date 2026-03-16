@@ -11,3 +11,7 @@ export function coerceRole(value: string | null | undefined): Role {
 export function canWrite(role: Role | undefined): boolean {
   return role === "admin" || role === "editor";
 }
+
+export function isAdmin(role: Role | undefined): boolean {
+  return role === "admin";
+}

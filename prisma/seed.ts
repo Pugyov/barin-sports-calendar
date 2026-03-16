@@ -30,16 +30,19 @@ function getSeedUsers() {
 
   return [
     {
+      name: "Admin",
       email: (process.env.SEED_ADMIN_EMAIL ?? "admin@local.test").trim().toLowerCase(),
       password: process.env.SEED_ADMIN_PASSWORD ?? defaultPassword,
       role: "admin"
     },
     {
+      name: "Editor",
       email: (process.env.SEED_EDITOR_EMAIL ?? "editor@local.test").trim().toLowerCase(),
       password: process.env.SEED_EDITOR_PASSWORD ?? defaultPassword,
       role: "editor"
     },
     {
+      name: "Viewer",
       email: (process.env.SEED_VIEWER_EMAIL ?? "viewer@local.test").trim().toLowerCase(),
       password: process.env.SEED_VIEWER_PASSWORD ?? defaultPassword,
       role: "viewer"
@@ -66,11 +69,13 @@ async function seedUsers() {
     await prisma.user.upsert({
       where: { email: user.email },
       update: {
+        name: user.name,
         role: user.role,
         isActive: true,
         passwordHash
       },
       create: {
+        name: user.name,
         email: user.email,
         role: user.role,
         isActive: true,

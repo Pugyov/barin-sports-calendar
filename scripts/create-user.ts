@@ -4,12 +4,12 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 function usage() {
-  console.error("Usage: npm run user:create -- <email> <password> <role>");
+  console.error("Usage: npm run user:create -- <email> <password> <role> [name]");
   console.error("Roles: admin | editor | viewer");
 }
 
 async function main() {
-  const [emailArg, passwordArg, roleArg] = process.argv.slice(2);
+  const [emailArg, passwordArg, roleArg, ...nameArgs] = process.argv.slice(2);
 
   if (!emailArg || !passwordArg || !roleArg) {
     usage();
@@ -19,6 +19,7 @@ async function main() {
   const email = emailArg.trim().toLowerCase();
   const password = passwordArg.trim();
   const role = roleArg.trim().toLowerCase();
+  const name = nameArgs.join(" ").trim() || null;
 
   if (!["admin", "editor", "viewer"].includes(role)) {
     usage();
@@ -35,11 +36,13 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email },
     update: {
+      name,
       role,
       isActive: true,
       passwordHash
     },
     create: {
+      name,
       email,
       role,
       isActive: true,

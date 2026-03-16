@@ -1,10 +1,10 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/lib/auth";
+import { RegisterForm } from "@/components/app/register-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignInForm } from "@/components/app/signin-form";
+import { getAuthSession } from "@/lib/auth";
 
-export default async function SignInPage() {
+export default async function RegisterPage() {
   const session = await getAuthSession();
   if (session?.user) {
     redirect("/");
@@ -15,28 +15,21 @@ export default async function SignInPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="inline-flex items-center rounded-2xl bg-black px-3 py-2 shadow-sm">
-            <Image
-              src="/barin-sports-logo.svg"
-              alt="Barin Sports"
-              width={84}
-              height={60}
-              priority
-              className="h-12 w-auto"
-            />
+            <Image src="/barin-sports-logo.svg" alt="Barin Sports" width={84} height={60} priority className="h-12 w-auto" />
           </div>
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold tracking-tight">Barin Sports Marketing Calendar</h1>
-            <p className="text-sm text-muted-foreground">Internal workspace for planning, imports, and calendar execution.</p>
+            <h1 className="text-xl font-semibold tracking-tight">Create your Barin Sports account</h1>
+            <p className="text-sm text-muted-foreground">New accounts start as viewers and require admin approval before access is granted.</p>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
-            <CardDescription>Use your internal email and password to access the calendar.</CardDescription>
+            <CardTitle>Register</CardTitle>
+            <CardDescription>Use your work details to request access.</CardDescription>
           </CardHeader>
           <CardContent>
-            <SignInForm />
+            <RegisterForm />
           </CardContent>
         </Card>
       </div>

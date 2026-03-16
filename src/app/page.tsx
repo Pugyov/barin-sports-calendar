@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { addDays, endOfMonth, format, formatDistanceToNowStrict, startOfDay, startOfMonth } from "date-fns";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, FileSpreadsheet, UploadCloud } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, UploadCloud } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -160,20 +159,6 @@ export default async function HomePage() {
                 This workspace gives you a quick read on pipeline load, publishing pressure, and recent imports before you move into
                 the calendar or pipeline details.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href="/calendar">
-                  Open calendar
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/pipeline">Review pipeline</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/import">Import workbook</Link>
-              </Button>
             </div>
           </div>
 
@@ -368,28 +353,6 @@ export default async function HomePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-sidebar text-sidebar-foreground">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                Workflow shortcuts
-              </CardTitle>
-              <CardDescription className="text-sidebar-foreground/70">
-                Jump straight to the operational views your team uses every day.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button asChild variant="secondary">
-                <Link href="/import">Import Excel</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/pipeline">Edit pipeline</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/calendar">Open month view</Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </section>
     </div>

@@ -17,8 +17,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <MainNav />
-          <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">{children}</main>
+          <div className="min-h-screen md:flex">
+            <MainNav />
+            <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+          </div>
         </ThemeProvider>
       </body>
     </html>

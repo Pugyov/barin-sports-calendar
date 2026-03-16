@@ -6,10 +6,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { MilestoneEvent } from "@/types/task";
 
 const milestoneColors: Record<string, string> = {
-  START: "bg-sky-100 text-sky-800",
-  DUE: "bg-amber-100 text-amber-900",
-  PUB: "bg-emerald-100 text-emerald-900"
+  START: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200",
+  DUE: "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200",
+  PUB: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-200"
 };
+
+function formatEventDate(date: string | null) {
+  if (!date) return "Not set";
+  return format(parseISO(date), "MMM d, yyyy");
+}
 
 type CalendarGridProps = {
   month: string;
@@ -50,22 +55,86 @@ export function CalendarGrid({ month, events }: CalendarGridProps) {
               <ScrollArea className="h-28">
                 <div className="space-y-1 pr-2">
                   {dayEvents.map((event) => (
-                    <div key={`${event.taskId}-${event.kind}`} className="rounded border border-border bg-card p-1 text-xs">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${milestoneColors[event.kind]}`}>
-                          {event.kind}
-                        </span>
-                        <span className="text-[10px] font-medium text-muted-foreground">{event.taskCode}</span>
-                      </div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                    <Tooltip key={`${event.taskId}-${event.kind}`}>
+                      <TooltipTrigger asChild>
+                        <div className="cursor-default rounded border border-border bg-card p-1 text-xs">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${milestoneColors[event.kind]}`}>
+                              {event.kind}
+                            </span>
+                            <span className="text-[10px] font-medium text-muted-foreground">{event.taskCode}</span>
+                          </div>
                           <div className="line-clamp-2 font-medium">{event.topic}</div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-sm">
-                          {event.topic}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" align="start" className="max-w-md p-4">
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${milestoneColors[event.kind]}`}>
+                                {event.kind}
+                              </span>
+                              <span className="text-xs font-medium text-muted-foreground">{event.taskCode}</span>
+                            </div>
+                            <div className="text-sm font-semibold">{event.topic}</div>
+                          </div>
+
+                          <div className="grid gap-2 text-xs sm:grid-cols-2">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Status</div>
+                              <div className="font-medium">{event.status ?? "Planned"}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Owner</div>
+                              <div className="font-medium">{event.owner ?? "Unassigned"}</div>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Phase Rule</div>
+                              <div className="font-medium">{event.phaseRule ?? "Not set"}</div>
+                            </div>
+                          </div>
+
+                          {event.types.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {event.types.map((type) => (
+                                <Badge key={`${event.taskId}-${event.kind}-${type}`} variant="secondary" className="rounded-full px-2 py-0 text-[10px]">
+                                  {type}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          <div className="grid gap-2 text-xs sm:grid-cols-3">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Start</div>
+                              <div className="font-medium">{formatEventDate(event.startDate)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Due</div>
+                              <div className="font-medium">{formatEventDate(event.dueDate)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Publish</div>
+                              <div className="font-medium">{formatEventDate(event.publishDate)}</div>
+                            </div>
+                          </div>
+
+                          {event.notes ? (
+                            <div className="space-y-1">
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Notes</div>
+                              <div className="line-clamp-4 text-xs leading-5">{event.notes}</div>
+                            </div>
+                          ) : null}
+
+                          {event.workLink ? (
+                            <div className="space-y-1">
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Work Link</div>
+                              <div className="truncate text-xs font-medium">{event.workLink}</div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
                 </div>
               </ScrollArea>

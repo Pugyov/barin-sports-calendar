@@ -12,8 +12,14 @@ export function deriveMilestones(tasks: TaskListItem[]): MilestoneEvent[] {
         kind: "START",
         date: task.startDate,
         types: task.types,
+        phaseRule: task.phaseRule,
         owner: task.owner,
-        status: task.status
+        workLink: task.workLink,
+        status: task.status,
+        notes: task.notes,
+        startDate: task.startDate,
+        dueDate: task.dueDate,
+        publishDate: task.publishDate
       });
     }
 
@@ -25,8 +31,14 @@ export function deriveMilestones(tasks: TaskListItem[]): MilestoneEvent[] {
         kind: "DUE",
         date: task.dueDate,
         types: task.types,
+        phaseRule: task.phaseRule,
         owner: task.owner,
-        status: task.status
+        workLink: task.workLink,
+        status: task.status,
+        notes: task.notes,
+        startDate: task.startDate,
+        dueDate: task.dueDate,
+        publishDate: task.publishDate
       });
     }
 
@@ -38,8 +50,14 @@ export function deriveMilestones(tasks: TaskListItem[]): MilestoneEvent[] {
         kind: "PUB",
         date: task.publishDate,
         types: task.types,
+        phaseRule: task.phaseRule,
         owner: task.owner,
-        status: task.status
+        workLink: task.workLink,
+        status: task.status,
+        notes: task.notes,
+        startDate: task.startDate,
+        dueDate: task.dueDate,
+        publishDate: task.publishDate
       });
     }
   }
