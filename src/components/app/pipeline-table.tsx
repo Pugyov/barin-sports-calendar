@@ -3,22 +3,24 @@ import { Badge } from "@/components/ui/badge";
 import { TaskActionsMenu } from "@/components/app/task-actions-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { TaskListItem } from "@/types/task";
+import { getTaskStatusLabel } from "@/lib/task-normalization";
+import type { AssignableUserOption, TaskListItem, TaskTypeOption } from "@/types/task";
 
 type PipelineTableProps = {
   tasks: TaskListItem[];
+  taskTypes: TaskTypeOption[];
+  assignableUsers: AssignableUserOption[];
   writable: boolean;
 };
 
-export function PipelineTable({ tasks, writable }: PipelineTableProps) {
+export function PipelineTable({ tasks, taskTypes, assignableUsers, writable }: PipelineTableProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Code</TableHead>
             <TableHead>Topic</TableHead>
-            <TableHead>Types</TableHead>
+            <TableHead>Task Type</TableHead>
             <TableHead>Owner</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Start</TableHead>
@@ -30,7 +32,6 @@ export function PipelineTable({ tasks, writable }: PipelineTableProps) {
         <TableBody>
           {tasks.map((task) => (
             <TableRow key={task.id}>
-              <TableCell className="font-medium">{task.taskCode}</TableCell>
               <TableCell className="max-w-sm">
                 <div className="space-y-2">
                   <div className="line-clamp-2 font-medium">{task.topic}</div>
@@ -40,7 +41,7 @@ export function PipelineTable({ tasks, writable }: PipelineTableProps) {
                         <button
                           type="button"
                           className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                          aria-label={`View notes for ${task.taskCode}`}
+                          aria-label={`View notes for ${task.topic}`}
                         >
                           <NotebookPen className="h-3.5 w-3.5" />
                           <span>Note</span>
@@ -55,18 +56,16 @@ export function PipelineTable({ tasks, writable }: PipelineTableProps) {
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {task.types.length ? task.types.map((type) => <Badge key={type} variant="secondary">{type}</Badge>) : "-"}
-                </div>
+                <Badge variant="secondary">{task.taskTypeName}</Badge>
               </TableCell>
-              <TableCell>{task.owner ?? "-"}</TableCell>
-              <TableCell>{task.status ?? "Planned"}</TableCell>
+              <TableCell>{task.ownerDisplay ?? "-"}</TableCell>
+              <TableCell>{getTaskStatusLabel(task.status)}</TableCell>
               <TableCell>{task.startDate ?? "-"}</TableCell>
               <TableCell>{task.dueDate ?? "-"}</TableCell>
               <TableCell>{task.publishDate ?? "-"}</TableCell>
               {writable ? (
                 <TableCell>
-                  <TaskActionsMenu task={task} />
+                  <TaskActionsMenu task={task} taskTypes={taskTypes} assignableUsers={assignableUsers} />
                 </TableCell>
               ) : null}
             </TableRow>

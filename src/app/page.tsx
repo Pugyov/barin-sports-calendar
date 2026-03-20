@@ -1,22 +1,29 @@
 import Link from "next/link";
-import { addDays, endOfMonth, format, formatDistanceToNowStrict, startOfDay, startOfMonth } from "date-fns";
-import { CalendarDays, CheckCircle2, Clock3, UploadCloud } from "lucide-react";
+import { format, formatDistanceToNowStrict } from "date-fns";
+import {
+  AlertTriangle,
+  ArrowRight,
+  LayoutGrid,
+  ShieldAlert,
+  UploadCloud,
+  Users,
+  UserRoundX,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { listRecentImports } from "@/lib/server/import-service";
+import { getTaskStatusLabel } from "@/lib/task-normalization";
+import { getDashboardSnapshot } from "@/lib/server/dashboard-service";
+import type { DashboardKpi, DashboardKpiTone, DashboardUrgentItem } from "@/types/dashboard";
 
-type TypeWithCount = {
-  name: string;
-  taskCount: number;
-};
+function getDisplayName(name: string | null | undefined, email: string | null | undefined) {
+  const trimmedName = name?.trim();
+  if (trimmedName) {
+    return trimmedName.split(/\s+/)[0] ?? trimmedName;
+  }
 
-function getDisplayName(email: string | null | undefined) {
   if (!email) return "team";
 
   const localPart = email.split("@")[0] ?? "";
@@ -27,10 +34,29 @@ function getDisplayName(email: string | null | undefined) {
   return firstToken.charAt(0).toUpperCase() + firstToken.slice(1);
 }
 
-function toPercent(value: number, total: number) {
-  if (total === 0) return 0;
-  return Math.round((value / total) * 100);
+function parseDateOnly(value: string) {
+  return new Date(`${value}T00:00:00.000Z`);
 }
+
+const kpiToneStyles: Record<DashboardKpiTone, string> = {
+  critical: "border-red-500/25 bg-red-500/10",
+  warning: "border-amber-500/25 bg-amber-500/10",
+  info: "border-sky-500/25 bg-sky-500/10",
+  neutral: "border-border bg-secondary/40"
+};
+
+const kpiIconMap: Record<DashboardKpi["label"], typeof ShieldAlert> = {
+  Overdue: ShieldAlert,
+  "Due in 7 days": AlertTriangle,
+  "Publishing in 7 days": UploadCloud,
+  Unassigned: UserRoundX
+};
+
+const urgencyBadgeStyles: Record<DashboardUrgentItem["kind"], string> = {
+  overdue: "border-transparent bg-red-500/15 text-red-200",
+  due_soon: "border-transparent bg-amber-500/15 text-amber-100",
+  publishing_soon: "border-transparent bg-sky-500/15 text-sky-100"
+};
 
 export default async function HomePage() {
   const session = await getAuthSession();
@@ -38,322 +64,223 @@ export default async function HomePage() {
     redirect("/signin");
   }
 
-  const displayName = getDisplayName(session.user.email);
-  const now = new Date();
-  const todayStart = startOfDay(now);
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const weekAhead = addDays(todayStart, 7);
-
-  const [
-    totalTasks,
-    doneTasks,
-    publishingThisMonth,
-    dueThisWeek,
-    upcomingPublishes,
-    recentImports,
-    typeTags
-  ] = await Promise.all([
-    prisma.task.count(),
-    prisma.task.count({ where: { statusNormalized: "done" } }),
-    prisma.task.count({
-      where: {
-        publishDate: {
-          gte: monthStart,
-          lte: monthEnd
-        }
-      }
-    }),
-    prisma.task.count({
-      where: {
-        dueDate: {
-          gte: todayStart,
-          lte: weekAhead
-        }
-      }
-    }),
-    prisma.task.findMany({
-      where: {
-        publishDate: {
-          gte: todayStart
-        }
-      },
-      orderBy: {
-        publishDate: "asc"
-      },
-      take: 6,
-      include: {
-        taskTypes: {
-          include: {
-            typeTag: true
-          }
-        }
-      }
-    }),
-    listRecentImports(5),
-    prisma.typeTag.findMany({
-      include: {
-        _count: {
-          select: {
-            taskTypes: true
-          }
-        }
-      }
-    })
-  ]);
-
-  const completionRate = toPercent(doneTasks, totalTasks);
-  const topTypes: TypeWithCount[] = typeTags
-    .map((tag) => ({
-      name: tag.name,
-      taskCount: tag._count.taskTypes
-    }))
-    .sort((a, b) => b.taskCount - a.taskCount)
-    .slice(0, 5);
-
-  const statCards = [
-    {
-      label: "Total tasks",
-      value: totalTasks,
-      hint: `${doneTasks} completed`,
-      icon: CalendarDays,
-      accent: "bg-chart-1"
-    },
-    {
-      label: "Publishing this month",
-      value: publishingThisMonth,
-      hint: format(monthEnd, "MMMM yyyy"),
-      icon: UploadCloud,
-      accent: "bg-chart-2"
-    },
-    {
-      label: "Due in 7 days",
-      value: dueThisWeek,
-      hint: `By ${format(weekAhead, "MMM d")}`,
-      icon: Clock3,
-      accent: "bg-chart-3"
-    },
-    {
-      label: "Completion rate",
-      value: `${completionRate}%`,
-      hint: `${totalTasks - doneTasks} still active`,
-      icon: CheckCircle2,
-      accent: "bg-chart-4"
-    }
-  ] as const;
+  const snapshot = await getDashboardSnapshot();
+  const displayName = getDisplayName(session.user.name, session.user.email);
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border bg-card">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--chart-2),transparent_28%),radial-gradient(circle_at_bottom_right,var(--chart-1),transparent_32%)] opacity-20" />
-        <div className="relative grid gap-8 px-6 py-8 md:grid-cols-[1.35fr_0.95fr] md:px-8 md:py-10">
-          <div className="space-y-4">
+    <div className="space-y-6 md:space-y-8">
+      <section className="rounded-3xl border bg-card">
+        <div className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
-              Marketing operations dashboard
+              {snapshot.dateLabel}
             </Badge>
-            <div className="space-y-3">
-              <h1 className="max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
-                Welcome back, {displayName}. Ready to shape today&apos;s marketing calendar?
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                This workspace gives you a quick read on pipeline load, publishing pressure, and recent imports before you move into
-                the calendar or pipeline details.
-              </p>
-            </div>
+            <Badge variant="outline" className="rounded-full px-3 py-1">
+              {snapshot.openTasks} open tasks
+            </Badge>
           </div>
 
-          <Card className="border-border/70 bg-background/80 backdrop-blur">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Execution health</CardTitle>
-              <CardDescription>Current completion rate across all imported and manually created tasks.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-3xl font-semibold">{completionRate}%</p>
-                  <p className="text-sm text-muted-foreground">of tasks are marked done</p>
-                </div>
-                <Badge variant="outline" className="rounded-full px-3 py-1">
-                  {totalTasks} total
-                </Badge>
-              </div>
-              <Progress value={completionRate} className="h-2" />
-              <div className="grid gap-3 text-sm sm:grid-cols-2">
-                <div className="rounded-2xl border bg-card p-4">
-                  <div className="text-muted-foreground">Open tasks</div>
-                  <div className="mt-1 text-2xl font-semibold">{totalTasks - doneTasks}</div>
-                </div>
-                <div className="rounded-2xl border bg-card p-4">
-                  <div className="text-muted-foreground">Recent imports</div>
-                  <div className="mt-1 text-2xl font-semibold">{recentImports.length}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Welcome back, {displayName}. Here&apos;s your operational picture for today.
+            </h1>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{snapshot.summary}</p>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((item) => {
-          const Icon = item.icon;
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {snapshot.kpis.map((item) => {
+          const Icon = kpiIconMap[item.label];
 
           return (
-            <Card key={item.label} className="overflow-hidden">
-              <CardContent className="relative p-0">
-                <div className={`h-1 w-full ${item.accent}`} />
-                <div className="flex items-start justify-between px-5 py-5">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{item.label}</p>
-                    <p className="mt-2 text-3xl font-semibold tracking-tight">{item.value}</p>
-                    <p className="mt-2 text-sm text-muted-foreground">{item.hint}</p>
+            <Link key={item.label} href={item.href} className="block">
+              <Card className="h-full transition-colors hover:border-primary/40">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`rounded-2xl border p-2 ${kpiToneStyles[item.tone]}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="rounded-2xl border bg-secondary p-3">
-                    <Icon className="h-5 w-5" />
+                  <div className="mt-4 space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                    <p className="text-3xl font-semibold tracking-tight">{item.value}</p>
+                    <p className="text-sm text-muted-foreground">{item.hint}</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+      <section className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <Card>
-          <CardHeader>
-            <CardTitle>Upcoming publish queue</CardTitle>
-            <CardDescription>The next items with publish dates on or after today.</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Execution health</CardTitle>
+            <CardDescription>Completion rate and remaining workload across the board.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-3xl font-semibold">{snapshot.completionRate}%</p>
+                <p className="text-sm text-muted-foreground">tasks marked done</p>
+              </div>
+              <Badge variant="outline" className="rounded-full px-3 py-1">
+                {snapshot.totalTasks} total
+              </Badge>
+            </div>
+            <Progress value={snapshot.completionRate} className="h-2" />
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl border bg-secondary/40 p-4">
+                <div className="text-muted-foreground">Open tasks</div>
+                <div className="mt-1 text-2xl font-semibold">{snapshot.openTasks}</div>
+              </div>
+              <div className="rounded-2xl border bg-secondary/40 p-4">
+                <div className="text-muted-foreground">Done tasks</div>
+                <div className="mt-1 text-2xl font-semibold">{snapshot.doneTasks}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Milestone matrix</CardTitle>
+            </div>
+            <CardDescription>Open tasks split by milestone type and timing window.</CardDescription>
           </CardHeader>
           <CardContent>
-            {upcomingPublishes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming publish dates are scheduled yet.</p>
+            <div className="overflow-hidden rounded-2xl border">
+              <div className="grid grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] bg-secondary/40 text-sm font-medium">
+                <div className="border-b px-4 py-3 text-muted-foreground">Window</div>
+                <div className="border-b border-l px-4 py-3 text-center">Start</div>
+                <div className="border-b border-l px-4 py-3 text-center">Due</div>
+                <div className="border-b border-l px-4 py-3 text-center">Publish</div>
+              </div>
+              {snapshot.milestoneMatrix.rows.map((row) => (
+                <div key={row.key} className="grid grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] text-sm">
+                  <div className="border-b px-4 py-3 font-medium">{row.label}</div>
+                  <Link href={row.start.href} className="border-b border-l px-4 py-3 text-center transition-colors hover:bg-secondary/40">
+                    {row.start.count}
+                  </Link>
+                  <Link href={row.due.href} className="border-b border-l px-4 py-3 text-center transition-colors hover:bg-secondary/40">
+                    {row.due.count}
+                  </Link>
+                  <Link href={row.publish.href} className="border-b border-l px-4 py-3 text-center transition-colors hover:bg-secondary/40">
+                    {row.publish.count}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.25fr_0.75fr]">
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle>People assigned</CardTitle>
+            </div>
+            <CardDescription>Open workload by active registered user.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {snapshot.ownerWorkloads.length === 0 ? (
+              <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">No active users are available for task assignment.</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Publish date</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Types</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {upcomingPublishes.map((task) => (
-                    <TableRow key={task.id}>
-                      <TableCell>
-                        <div className="font-medium">{task.topic}</div>
-                        <div className="text-xs text-muted-foreground">{task.taskCode}</div>
-                      </TableCell>
-                      <TableCell>
-                        {task.publishDate ? (
-                          <div>
-                            <div>{format(task.publishDate, "MMM d, yyyy")}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {formatDistanceToNowStrict(task.publishDate, { addSuffix: true })}
-                            </div>
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell>{task.owner ?? "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {task.taskTypes.length > 0 ? (
-                            task.taskTypes.slice(0, 3).map((type) => (
-                              <Badge key={type.typeTag.id} variant="secondary">
-                                {type.typeTag.name}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              snapshot.ownerWorkloads.map((entry) => (
+                <Link key={entry.userId} href={entry.href} className="block">
+                  <div className="flex items-center justify-between rounded-2xl border p-4 transition-colors hover:border-primary/40 hover:bg-secondary/40">
+                    <div className="font-medium">{entry.displayName}</div>
+                    <Badge variant="secondary" className="rounded-full px-3 py-1">
+                      {entry.openTaskCount}
+                    </Badge>
+                  </div>
+                </Link>
+              ))
             )}
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Top content types</CardTitle>
-              <CardDescription>Current task volume by tag.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {topTypes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Import data to see content mix.</p>
-              ) : (
-                topTypes.map((type, index) => (
-                  <div key={type.name} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{type.name}</span>
-                      <span className="text-muted-foreground">{type.taskCount}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${toPercent(type.taskCount, totalTasks)}%`,
-                          backgroundColor: `var(--chart-${(index % 5) + 1})`
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle>Needs attention today</CardTitle>
+            <CardDescription>The next deadlines and publish moments that deserve action first.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {snapshot.upcomingItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+                Nothing urgent is queued for the next seven days.
+              </div>
+            ) : (
+              snapshot.upcomingItems.map((item) => {
+                const date = parseDateOnly(item.date);
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent imports</CardTitle>
-              <CardDescription>Last workbook activity in the system.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentImports.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No import batches yet.</p>
-              ) : (
-                recentImports.map((batch, index) => (
-                  <div key={batch.id} className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{batch.fileName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNowStrict(batch.createdAt, { addSuffix: true })}
-                        </p>
+                return (
+                  <Link key={`${item.kind}-${item.taskId}`} href={item.href} className="block">
+                    <div className="rounded-2xl border p-4 transition-colors hover:border-primary/40 hover:bg-secondary/40">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={urgencyBadgeStyles[item.kind]}>{item.label}</Badge>
+                            <Badge variant="secondary">{item.taskTypeName}</Badge>
+                          </div>
+                          <p className="font-medium leading-6">{item.topic}</p>
+                        </div>
+                        <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
                       </div>
-                      <Badge variant={batch.dryRun ? "secondary" : "default"}>{batch.dryRun ? "Dry-run" : "Commit"}</Badge>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-                      <div className="rounded-xl border bg-muted/40 p-2 text-center">
-                        <div className="font-medium text-foreground">{batch.createdCount}</div>
-                        created
-                      </div>
-                      <div className="rounded-xl border bg-muted/40 p-2 text-center">
-                        <div className="font-medium text-foreground">{batch.updatedCount}</div>
-                        updated
-                      </div>
-                      <div className="rounded-xl border bg-muted/40 p-2 text-center">
-                        <div className="font-medium text-foreground">{batch.skippedCount}</div>
-                        skipped
-                      </div>
-                      <div className="rounded-xl border bg-muted/40 p-2 text-center">
-                        <div className="font-medium text-foreground">{batch.errorCount}</div>
-                        errors
-                      </div>
-                    </div>
-                    {index < recentImports.length - 1 ? <Separator /> : null}
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
 
-        </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span>{format(date, "EEE, MMM d")}</span>
+                        <span>·</span>
+                        <span>{formatDistanceToNowStrict(date, { addSuffix: true })}</span>
+                        <span>·</span>
+                        <span>{item.ownerDisplay ?? "Unassigned"}</span>
+                        <span>·</span>
+                        <span>{getTaskStatusLabel(item.status)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Top content types</CardTitle>
+            <CardDescription>Current task mix by controlled task type.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {snapshot.topTypes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Create tasks to see content mix.</p>
+            ) : (
+              snapshot.topTypes.map((type, index) => (
+                <div key={type.name} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{type.name}</span>
+                    <span className="text-muted-foreground">{type.taskCount}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${type.percent}%`,
+                        backgroundColor: `var(--chart-${(index % 5) + 1})`
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

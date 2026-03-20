@@ -14,14 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { TASK_STATUS_LABELS, TASK_STATUS_VALUES } from "@/lib/task-normalization";
 import { initialTaskFormState } from "@/types/task-form";
-import type { TaskListItem } from "@/types/task";
+import type { AssignableUserOption, TaskListItem, TaskTypeOption } from "@/types/task";
 
 type TaskActionsMenuProps = {
   task: TaskListItem;
+  taskTypes: TaskTypeOption[];
+  assignableUsers: AssignableUserOption[];
 };
 
-export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
+const selectClassName = "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm";
+
+export function TaskActionsMenu({ task, taskTypes, assignableUsers }: TaskActionsMenuProps) {
   const router = useRouter();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -55,7 +60,7 @@ export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit task {task.taskCode}</DialogTitle>
+            <DialogTitle>Edit task</DialogTitle>
             <DialogDescription>Update scheduling, ownership, and task details without leaving the pipeline view.</DialogDescription>
           </DialogHeader>
           <form action={editFormAction} className="grid gap-3 md:grid-cols-3">
@@ -66,25 +71,44 @@ export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
                 <AlertDescription>{editState.message}</AlertDescription>
               </Alert>
             ) : null}
-            <div className="space-y-2">
-              <Label htmlFor={`edit-taskCode-${task.id}`}>Task Code</Label>
-              <Input id={`edit-taskCode-${task.id}`} name="taskCode" defaultValue={task.taskCode} required />
-              <FormFieldError message={editState.fieldErrors.taskCode?.[0]} />
-            </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor={`edit-topic-${task.id}`}>Topic</Label>
               <Input id={`edit-topic-${task.id}`} name="topic" defaultValue={task.topic} required />
               <FormFieldError message={editState.fieldErrors.topic?.[0]} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`edit-types-${task.id}`}>Types (comma-separated)</Label>
-              <Input id={`edit-types-${task.id}`} name="types" defaultValue={task.types.join(", ")} />
-              <FormFieldError message={editState.fieldErrors.types?.[0]} />
+              <Label htmlFor={`edit-taskTypeId-${task.id}`}>Task Type</Label>
+              <select
+                id={`edit-taskTypeId-${task.id}`}
+                name="taskTypeId"
+                defaultValue={String(task.taskTypeId)}
+                className={selectClassName}
+                required
+              >
+                {taskTypes.map((taskType) => (
+                  <option key={taskType.id} value={taskType.id}>
+                    {taskType.name}
+                  </option>
+                ))}
+              </select>
+              <FormFieldError message={editState.fieldErrors.taskTypeId?.[0]} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`edit-owner-${task.id}`}>Owner</Label>
-              <Input id={`edit-owner-${task.id}`} name="owner" defaultValue={task.owner ?? ""} />
-              <FormFieldError message={editState.fieldErrors.owner?.[0]} />
+              <Label htmlFor={`edit-ownerUserId-${task.id}`}>Owner</Label>
+              <select
+                id={`edit-ownerUserId-${task.id}`}
+                name="ownerUserId"
+                defaultValue={task.ownerUserId ?? ""}
+                className={selectClassName}
+              >
+                <option value="">Unassigned</option>
+                {assignableUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.displayName}
+                  </option>
+                ))}
+              </select>
+              <FormFieldError message={editState.fieldErrors.ownerUserId?.[0]} />
             </div>
             <Separator className="md:col-span-3" />
             <div className="space-y-2">
@@ -104,7 +128,13 @@ export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor={`edit-status-${task.id}`}>Status</Label>
-              <Input id={`edit-status-${task.id}`} name="status" defaultValue={task.status ?? ""} />
+              <select id={`edit-status-${task.id}`} name="status" defaultValue={task.status} className={selectClassName}>
+                {TASK_STATUS_VALUES.map((status) => (
+                  <option key={status} value={status}>
+                    {TASK_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
               <FormFieldError message={editState.fieldErrors.status?.[0]} />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -133,7 +163,7 @@ export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={`Actions for ${task.taskCode}`}>
+          <Button variant="ghost" size="icon" aria-label={`Actions for ${task.topic}`}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -161,7 +191,7 @@ export function TaskActionsMenu({ task }: TaskActionsMenuProps) {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task {task.taskCode}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
             <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <form action={deleteFormAction}>

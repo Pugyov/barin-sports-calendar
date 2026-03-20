@@ -1,11 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, FileSpreadsheet, LayoutDashboard, Users, Workflow } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarDays, LayoutDashboard, Shapes, Users, Workflow } from "lucide-react";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 
-type SidebarNavIcon = "dashboard" | "calendar" | "pipeline" | "import" | "users";
+type SidebarNavIcon = "dashboard" | "calendar" | "pipeline" | "users" | "taskTypes";
 
 type SidebarNavItem = {
   href: string;
@@ -21,35 +22,52 @@ const iconMap = {
   dashboard: LayoutDashboard,
   calendar: CalendarDays,
   pipeline: Workflow,
-  import: FileSpreadsheet,
-  users: Users
+  users: Users,
+  taskTypes: Shapes
 } satisfies Record<SidebarNavIcon, typeof LayoutDashboard>;
 
 export function SidebarNav({ items }: SidebarNavProps) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const previousPathname = useRef(pathname);
+
+  useEffect(() => {
+    if (isMobile && previousPathname.current !== pathname) {
+      setOpenMobile(false);
+    }
+    previousPathname.current = pathname;
+  }, [isMobile, pathname, setOpenMobile]);
 
   return (
-    <nav className="space-y-2">
+    <SidebarMenu>
       {items.map((item) => {
         const Icon = iconMap[item.icon];
         const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
-              isActive
-                ? "border-border bg-accent text-accent-foreground shadow-sm"
-                : "border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span>{item.label}</span>
-          </Link>
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              size="lg"
+              tooltip={item.label}
+              className="group-data-[collapsible=icon]:justify-center"
+            >
+              <Link
+                href={item.href}
+                onClick={() => {
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                }}
+              >
+                <Icon />
+                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
       })}
-    </nav>
+    </SidebarMenu>
   );
 }

@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TaskStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String?
@@ -16,53 +23,44 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  ownedTasks   Task[]   @relation("TaskOwner")
 
   @@index([role])
   @@index([isActive])
 }
 
 model Task {
-  id               String           @id @default(cuid())
-  taskCode         String           @unique
-  topic            String
-  phaseRule        String?
-  owner            String?
-  workLink         String?
-  status           String?
-  statusNormalized String?          @default("planned")
-  notes            String?
-  startDate        DateTime?
-  dueDate          DateTime?
-  publishDate      DateTime?
-  rawTypeText      String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  taskTypes        TaskType[]
-  importLinks      ImportBatchTask[]
+  id          String           @id @default(cuid())
+  topic       String
+  phaseRule   String?
+  ownerUserId String?
+  workLink    String?
+  status      TaskStatus       @default(PLANNED)
+  notes       String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  publishDate DateTime?
+  taskTypeId  Int
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  taskType    TaskType         @relation(fields: [taskTypeId], references: [id], onDelete: Restrict)
+  ownerUser   User?            @relation("TaskOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  importLinks ImportBatchTask[]
 
   @@index([publishDate])
   @@index([dueDate])
   @@index([startDate])
-  @@index([statusNormalized])
-}
-
-model TypeTag {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  color     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  taskTypes TaskType[]
+  @@index([status])
+  @@index([taskTypeId])
+  @@index([ownerUserId])
 }
 
 model TaskType {
-  taskId    String
-  typeTagId Int
-  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  typeTag   TypeTag @relation(fields: [typeTagId], references: [id], onDelete: Restrict)
-
-  @@id([taskId, typeTagId])
-  @@index([typeTagId])
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
 }
 
 model ImportBatch {

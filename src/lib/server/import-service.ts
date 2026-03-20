@@ -1,8 +1,8 @@
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { parseSpreadsheetDate, toDateOnlyIso } from "@/lib/excel";
-import { splitTypes } from "@/lib/task-normalization";
-import { upsertTaskByCode } from "@/lib/server/task-service";
+import { normalizeLegacyStatus, splitTypes } from "@/lib/task-normalization";
+import { resolveOwnerUserIdFromLegacyValue } from "@/lib/server/user-service";
 
 const PIPELINE_SHEET_NAME = "Pipeline(All)";
 
@@ -37,19 +37,26 @@ export type ImportResult = {
   errors: Array<{ rowNumber: number; taskCode: string | null; message: string }>;
 };
 
+export class ImportValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ImportValidationError";
+  }
+}
+
 function readWorkbook(buffer: Buffer): PipelineRow[] {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true, raw: true });
   const worksheet = workbook.Sheets[PIPELINE_SHEET_NAME];
 
   if (!worksheet) {
-    throw new Error(`Sheet \"${PIPELINE_SHEET_NAME}\" was not found`);
+    throw new ImportValidationError(`Sheet "${PIPELINE_SHEET_NAME}" was not found`);
   }
 
   const headers = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, range: 0, raw: false })[0] ?? [];
   const missingHeaders = REQUIRED_HEADERS.filter((header) => !headers.includes(header));
 
   if (missingHeaders.length > 0) {
-    throw new Error(`Missing required columns: ${missingHeaders.join(", ")}`);
+    throw new ImportValidationError(`Missing required columns: ${missingHeaders.join(", ")}`);
   }
 
   return XLSX.utils.sheet_to_json<PipelineRow>(worksheet, {
@@ -71,14 +78,48 @@ function mapRow(row: PipelineRow) {
     types,
     rawTypeText,
     phaseRule: row["Phase/Rule"] !== undefined ? String(row["Phase/Rule"] ?? "").trim() || null : null,
-    owner: String(row["Owner"] ?? "").trim() || null,
+    rawOwner: String(row["Owner"] ?? "").trim() || null,
     workLink: String(row["Work Link"] ?? "").trim() || null,
-    status: String(row["Status"] ?? "").trim() || null,
+    status: normalizeLegacyStatus(String(row["Status"] ?? "").trim() || null),
     notes: String(row["Notes"] ?? "").trim() || null,
     startDate: toDateOnlyIso(parseSpreadsheetDate(row["Start Date"])),
     dueDate: toDateOnlyIso(parseSpreadsheetDate(row["Delivery Due"])),
     publishDate: toDateOnlyIso(parseSpreadsheetDate(row["Publish Date"]))
   };
+}
+
+async function ensureTaskTypeId(names: string[]) {
+  const selectedName = names[0] || "Other";
+
+  const taskType = await prisma.taskType.upsert({
+    where: { name: selectedName },
+    update: {},
+    create: { name: selectedName },
+    select: { id: true }
+  });
+
+  return taskType.id;
+}
+
+function toDateInput(value: string | null) {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+async function findExistingImportedTask(input: ReturnType<typeof mapRow>) {
+  const startDate = toDateInput(input.startDate);
+  const dueDate = toDateInput(input.dueDate);
+  const publishDate = toDateInput(input.publishDate);
+
+  return prisma.task.findFirst({
+    where: {
+      topic: input.topic,
+      startDate,
+      dueDate,
+      publishDate
+    },
+    select: { id: true }
+  });
 }
 
 export async function importPipelineWorkbook(buffer: Buffer, options: ImportOptions): Promise<ImportResult> {
@@ -118,10 +159,7 @@ export async function importPipelineWorkbook(buffer: Buffer, options: ImportOpti
 
     try {
       if (options.dryRun) {
-        const existing = await prisma.task.findUnique({
-          where: { taskCode: mapped.taskCode },
-          select: { id: true }
-        });
+        const existing = await findExistingImportedTask(mapped);
 
         if (existing) {
           updatedCount += 1;
@@ -131,16 +169,41 @@ export async function importPipelineWorkbook(buffer: Buffer, options: ImportOpti
         continue;
       }
 
-      const result = await upsertTaskByCode(mapped);
+      const taskTypeId = await ensureTaskTypeId(mapped.types);
+      const existing = await findExistingImportedTask(mapped);
+      const ownerUserId = await resolveOwnerUserIdFromLegacyValue(mapped.rawOwner);
+      const data = {
+        topic: mapped.topic,
+        taskTypeId,
+        phaseRule: mapped.phaseRule,
+        ownerUserId,
+        workLink: mapped.workLink,
+        status: mapped.status,
+        notes: mapped.notes,
+        startDate: toDateInput(mapped.startDate),
+        dueDate: toDateInput(mapped.dueDate),
+        publishDate: toDateInput(mapped.publishDate)
+      };
 
-      if (result.action === "created") createdCount += 1;
-      if (result.action === "updated") updatedCount += 1;
+      const task = existing
+        ? await prisma.task.update({
+            where: { id: existing.id },
+            data
+          })
+        : await prisma.task.create({
+            data
+          });
+
+      const action = existing ? "updated" : "created";
+
+      if (action === "created") createdCount += 1;
+      if (action === "updated") updatedCount += 1;
 
       await prisma.importBatchTask.create({
         data: {
           importBatchId: batch.id,
-          taskId: result.task.id,
-          action: result.action
+          taskId: task.id,
+          action
         }
       });
     } catch (error) {

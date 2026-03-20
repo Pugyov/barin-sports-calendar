@@ -3,22 +3,24 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
+const searchParams = new URLSearchParams("status=open&ownerUserId=user-1");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
-  usePathname: () => "/calendar"
+  usePathname: () => "/calendar",
+  useSearchParams: () => searchParams
 }));
 
 import { CalendarMonthSelector } from "@/components/app/calendar-month-selector";
 
 describe("CalendarMonthSelector", () => {
-  it("navigates using initial selected month", async () => {
+  it("navigates to the previous month and preserves filters", async () => {
     const user = userEvent.setup();
 
     render(<CalendarMonthSelector currentMonth="2026-03" />);
 
-    await user.click(screen.getByRole("button", { name: "Go" }));
+    await user.click(screen.getByRole("button", { name: /previous month/i }));
 
-    expect(push).toHaveBeenCalledWith("/calendar?month=2026-03");
+    expect(push).toHaveBeenCalledWith("/calendar?status=open&ownerUserId=user-1&month=2026-02", { scroll: false });
   });
 });

@@ -15,8 +15,8 @@ export default async function RegisterPendingPage() {
     <div className="flex min-h-[70vh] items-center justify-center">
       <Card className="w-full max-w-lg">
         <CardHeader className="items-center text-center">
-          <div className="inline-flex items-center rounded-2xl bg-black px-3 py-2 shadow-sm">
-            <Image src="/barin-sports-logo.svg" alt="Barin Sports" width={84} height={60} priority className="h-12 w-auto" />
+          <div className="inline-flex items-center rounded-2xl border bg-white px-3 py-2 shadow-sm">
+            <Image src="/barin-redline-logo.png" alt="Barin Sports" width={72} height={72} priority className="h-12 w-auto" />
           </div>
           <CardTitle>Waiting for admin approval</CardTitle>
           <CardDescription>Your account request has been received. An admin needs to approve it before you can sign in.</CardDescription>

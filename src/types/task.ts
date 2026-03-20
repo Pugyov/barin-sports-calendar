@@ -1,32 +1,42 @@
 export type MilestoneKind = "START" | "DUE" | "PUB";
 
+export type TaskTypeOption = {
+  id: number;
+  name: string;
+};
+
+export type AssignableUserOption = {
+  id: string;
+  displayName: string;
+};
+
 export type TaskListItem = {
   id: string;
-  taskCode: string;
   topic: string;
+  taskTypeId: number;
+  taskTypeName: string;
   phaseRule: string | null;
-  owner: string | null;
+  ownerUserId: string | null;
+  ownerDisplay: string | null;
   workLink: string | null;
-  status: string | null;
-  statusNormalized: string | null;
+  status: "PLANNED" | "IN_PROGRESS" | "DONE" | "BLOCKED";
   notes: string | null;
   startDate: string | null;
   dueDate: string | null;
   publishDate: string | null;
-  types: string[];
 };
 
 export type MilestoneEvent = {
   taskId: string;
-  taskCode: string;
   topic: string;
+  taskTypeName: string;
   kind: MilestoneKind;
   date: string;
-  types: string[];
   phaseRule: string | null;
-  owner: string | null;
+  ownerUserId: string | null;
+  ownerDisplay: string | null;
   workLink: string | null;
-  status: string | null;
+  status: "PLANNED" | "IN_PROGRESS" | "DONE" | "BLOCKED";
   notes: string | null;
   startDate: string | null;
   dueDate: string | null;

@@ -3,7 +3,7 @@ import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const TYPE_TAGS = [
+const TASK_TYPES = [
   "Social media post",
   "Website",
   "Team Spotlight",
@@ -22,7 +22,8 @@ const TYPE_TAGS = [
   "Collaboration",
   "BFU",
   "RG",
-  "Badminton"
+  "Badminton",
+  "Other"
 ];
 
 function getSeedUsers() {
@@ -50,9 +51,9 @@ function getSeedUsers() {
   ];
 }
 
-async function seedTypeTags() {
-  for (const name of TYPE_TAGS) {
-    await prisma.typeTag.upsert({
+async function seedTaskTypes() {
+  for (const name of TASK_TYPES) {
+    await prisma.taskType.upsert({
       where: { name },
       update: {},
       create: { name }
@@ -95,7 +96,7 @@ async function seedUsers() {
 }
 
 async function main() {
-  await seedTypeTags();
+  await seedTaskTypes();
   await seedUsers();
 }
 

@@ -1,80 +1,62 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { addMonths, format, parseISO, subMonths } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const MONTHS = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" }
-] as const;
+type CalendarMonthSelectorProps = {
+  currentMonth: string;
+};
 
-function parseMonth(month: string): { year: string; month: string } {
-  const [year, monthValue] = month.split("-");
-  return {
-    year,
-    month: monthValue
-  };
+function buildSearchParams(searchParams: URLSearchParams, updates: Record<string, string | null>) {
+  const nextParams = new URLSearchParams(searchParams.toString());
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === null || value === "") {
+      nextParams.delete(key);
+    } else {
+      nextParams.set(key, value);
+    }
+  }
+
+  const query = nextParams.toString();
+  return query ? `?${query}` : "";
 }
 
-export function CalendarMonthSelector({ currentMonth }: { currentMonth: string }) {
+export function CalendarMonthSelector({ currentMonth }: CalendarMonthSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const monthDate = parseISO(`${currentMonth}-01`);
 
-  const parsed = parseMonth(currentMonth);
-  const [year, setYear] = useState(parsed.year);
-  const [month, setMonth] = useState(parsed.month);
+  function navigate(nextMonth: string, selectedDate: string | null = null) {
+    const search = buildSearchParams(searchParams, {
+      month: nextMonth,
+      selectedDate
+    });
 
-  const years = useMemo(() => {
-    const now = new Date().getFullYear();
-    return Array.from({ length: 10 }, (_, index) => `${now - 3 + index}`);
-  }, []);
+    router.push(`${pathname}${search}`, { scroll: false });
+  }
 
-  function applyMonth() {
-    router.push(`${pathname}?month=${year}-${month}`);
+  function goToToday() {
+    const now = new Date();
+    navigate(format(now, "yyyy-MM"), format(now, "yyyy-MM-dd"));
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Select value={month} onValueChange={setMonth}>
-        <SelectTrigger className="w-40" aria-label="Select month">
-          <SelectValue placeholder="Month" />
-        </SelectTrigger>
-        <SelectContent>
-          {MONTHS.map((monthItem) => (
-            <SelectItem key={monthItem.value} value={monthItem.value}>
-              {monthItem.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={year} onValueChange={setYear}>
-        <SelectTrigger className="w-24" aria-label="Select year">
-          <SelectValue placeholder="Year" />
-        </SelectTrigger>
-        <SelectContent>
-          {years.map((yearItem) => (
-            <SelectItem key={yearItem} value={yearItem}>
-              {yearItem}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Button type="button" onClick={applyMonth}>
-        Go
+    <div className="flex flex-wrap items-center gap-2">
+      <Button type="button" variant="outline" size="icon" onClick={() => navigate(format(subMonths(monthDate, 1), "yyyy-MM"))} aria-label="Previous month">
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <div className="min-w-[11rem] rounded-full border bg-background px-4 py-2 text-center text-sm font-medium shadow-sm">
+        {format(monthDate, "MMMM yyyy")}
+      </div>
+      <Button type="button" variant="outline" size="icon" onClick={() => navigate(format(addMonths(monthDate, 1), "yyyy-MM"))} aria-label="Next month">
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="secondary" onClick={goToToday}>
+        Today
       </Button>
     </div>
   );

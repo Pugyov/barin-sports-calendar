@@ -17,4 +17,14 @@ describe("excel helpers", () => {
     const date = parseSpreadsheetDate("2026-03-05");
     expect(toDateOnlyIso(date)).toBe("2026-03-05");
   });
+
+  it("keeps the same calendar day for Date instances coming from spreadsheets", () => {
+    const date = parseSpreadsheetDate(new Date(2026, 0, 20));
+    expect(toDateOnlyIso(date)).toBe("2026-01-20");
+  });
+
+  it("parses slash-formatted spreadsheet dates", () => {
+    const date = parseSpreadsheetDate("20/1/26");
+    expect(toDateOnlyIso(date)).toBe("2026-01-20");
+  });
 });

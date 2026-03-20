@@ -5,13 +5,17 @@ export function excelSerialToDate(serial: number): Date {
   return new Date(EXCEL_EPOCH_IN_UTC + serial * DAY_IN_MS);
 }
 
+function toUtcDateOnly(year: number, monthIndex: number, day: number): Date {
+  return new Date(Date.UTC(year, monthIndex, day));
+}
+
 export function parseSpreadsheetDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value;
+    return toUtcDateOnly(value.getFullYear(), value.getMonth(), value.getDate());
   }
 
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -25,6 +29,17 @@ export function parseSpreadsheetDate(value: unknown): Date | null {
     const numeric = Number(trimmed);
     if (!Number.isNaN(numeric)) {
       return excelSerialToDate(numeric);
+    }
+
+    const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+    if (isoDateMatch) {
+      return toUtcDateOnly(Number(isoDateMatch[1]), Number(isoDateMatch[2]) - 1, Number(isoDateMatch[3]));
+    }
+
+    const slashDateMatch = /^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/.exec(trimmed);
+    if (slashDateMatch) {
+      const year = slashDateMatch[3].length === 2 ? 2000 + Number(slashDateMatch[3]) : Number(slashDateMatch[3]);
+      return toUtcDateOnly(year, Number(slashDateMatch[2]) - 1, Number(slashDateMatch[1]));
     }
 
     const parsed = new Date(trimmed);

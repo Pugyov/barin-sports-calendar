@@ -1,4 +1,13 @@
 import { z } from "zod";
+import { TASK_STATUS_VALUES } from "@/lib/task-normalization";
+
+function emptyQueryValueToUndefined(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  return value;
+}
 
 const maybeDateString = z
   .string()
@@ -20,13 +29,18 @@ const maybeString = z
     return value;
   });
 
+const taskTypeIdSchema = z
+  .string()
+  .trim()
+  .min(1, "Task type is required")
+  .refine((value) => /^\d+$/.test(value) && Number(value) > 0, "Task type is invalid");
+
 export const taskMutationSchema = z
   .object({
-    taskCode: z.string().trim().min(1, "Task code is required"),
     topic: z.string().trim().min(1, "Topic is required"),
-    types: z.array(z.string().trim().min(1)).default([]),
+    taskTypeId: taskTypeIdSchema,
     phaseRule: maybeString,
-    owner: maybeString,
+    ownerUserId: maybeString,
     workLink: maybeString.refine((value) => {
       if (!value) return true;
       try {
@@ -36,12 +50,13 @@ export const taskMutationSchema = z
         return false;
       }
     }, "Work link must be a valid URL"),
-    status: maybeString,
+    status: z.enum(TASK_STATUS_VALUES, {
+      error: "Status is required"
+    }),
     notes: maybeString,
     startDate: maybeDateString,
     dueDate: maybeDateString,
-    publishDate: maybeDateString,
-    rawTypeText: maybeString
+    publishDate: maybeDateString
   })
   .superRefine((value, ctx) => {
     const start = value.startDate ? new Date(value.startDate) : null;
@@ -67,9 +82,12 @@ export const taskMutationSchema = z
 
 export const taskFilterSchema = z.object({
   q: z.string().trim().optional(),
-  type: z.string().trim().optional(),
-  status: z.string().trim().optional(),
-  owner: z.string().trim().optional(),
+  taskId: z.string().trim().optional(),
+  taskTypeId: z.preprocess(emptyQueryValueToUndefined, taskTypeIdSchema.optional()),
+  status: z.preprocess(emptyQueryValueToUndefined, z.enum([...TASK_STATUS_VALUES, "open"]).optional()),
+  ownerUserId: z.preprocess(emptyQueryValueToUndefined, z.string().trim().optional()),
+  ownerState: z.preprocess(emptyQueryValueToUndefined, z.enum(["assigned", "unassigned"]).optional()),
+  dateField: z.preprocess(emptyQueryValueToUndefined, z.enum(["start", "due", "publish"]).optional()),
   phaseRule: z.string().trim().optional(),
   from: z.string().trim().optional(),
   to: z.string().trim().optional()

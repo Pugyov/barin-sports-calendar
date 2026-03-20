@@ -4,11 +4,13 @@ import type { Role } from "@/types/auth";
 declare module "next-auth" {
   interface Session {
     user: DefaultSession["user"] & {
+      id: string;
       role: Role;
     };
   }
 
   interface User {
+    id?: string;
     role?: Role;
   }
 }

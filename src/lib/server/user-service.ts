@@ -2,7 +2,9 @@ import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getUserDisplayName } from "@/lib/user-display";
 import type { Role, UserAccessState } from "@/types/auth";
+import type { AssignableUserOption } from "@/types/task";
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, "Name is required"),
@@ -45,6 +47,89 @@ function mapRole(role: string): Role {
   }
 
   return "viewer";
+}
+
+export async function listAssignableUsers(): Promise<AssignableUserOption[]> {
+  const users = await prisma.user.findMany({
+    where: {
+      isActive: true
+    },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true
+    }
+  });
+
+  return users.map((user) => ({
+    id: user.id,
+    displayName: getUserDisplayName(user.name, user.email)
+  }));
+}
+
+export async function ensureAssignableUserId(userId: string | null | undefined): Promise<string | null> {
+  const trimmed = userId?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: trimmed,
+      isActive: true
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!user) {
+    throw new Error("Assigned user must be an active registered user.");
+  }
+
+  return user.id;
+}
+
+export async function resolveOwnerUserIdFromLegacyValue(rawOwner: string | null | undefined): Promise<string | null> {
+  const trimmed = rawOwner?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const emailMatch = await prisma.user.findFirst({
+    where: {
+      isActive: true,
+      email: {
+        equals: trimmed
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (emailMatch) {
+    return emailMatch.id;
+  }
+
+  const nameMatches = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      name: {
+        equals: trimmed
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (nameMatches.length === 1) {
+    return nameMatches[0].id;
+  }
+
+  return null;
 }
 
 export async function registerPendingUser(rawInput: unknown) {

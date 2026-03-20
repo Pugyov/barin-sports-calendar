@@ -1,8 +1,7 @@
 export type TaskFormField =
-  | "taskCode"
   | "topic"
-  | "types"
-  | "owner"
+  | "taskTypeId"
+  | "ownerUserId"
   | "workLink"
   | "status"
   | "notes"
@@ -14,15 +13,13 @@ export type TaskFormState = {
   status: "idle" | "success" | "error";
   message: string | null;
   fieldErrors: Partial<Record<TaskFormField, string[]>>;
-  suggestedTaskCode: string;
 };
 
-export function createTaskFormState(suggestedTaskCode = ""): TaskFormState {
+export function createTaskFormState(): TaskFormState {
   return {
     status: "idle",
     message: null,
-    fieldErrors: {},
-    suggestedTaskCode
+    fieldErrors: {}
   };
 }
 

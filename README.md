@@ -188,6 +188,7 @@ Required workbook columns:
 ```bash
 npm run dev
 npm run lint
+npm run typecheck
 npm run build
 npm test
 npm run prisma:generate
@@ -208,6 +209,12 @@ Run lint:
 
 ```bash
 npm run lint
+```
+
+Run typecheck:
+
+```bash
+npm run typecheck
 ```
 
 Run production build validation:

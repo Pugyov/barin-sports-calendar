@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { cleanNullableString, normalizeStatus, splitTypes } from "@/lib/task-normalization";
 import { toDateOnlyIso } from "@/lib/excel";
+import { cleanNullableString } from "@/lib/task-normalization";
+import { invalidTaskTypeError, normalizeTaskMutationError, taskNotFoundError } from "@/lib/server/task-errors";
+import { getUserDisplayName } from "@/lib/user-display";
+import { ensureAssignableUserId } from "@/lib/server/user-service";
 import { taskFilterSchema, taskMutationSchema, type TaskFilterInput, type TaskMutationInput } from "@/lib/validation/task";
-import type { TaskListItem } from "@/types/task";
+import type { TaskListItem, TaskTypeOption } from "@/types/task";
 
 function parseDateInput(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -11,7 +14,23 @@ function parseDateInput(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function buildDateRangeFilter(from?: string, to?: string): Prisma.TaskWhereInput | undefined {
+function parseTaskTypeId(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function parseRequiredTaskTypeId(value: string): number {
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw invalidTaskTypeError();
+  }
+
+  return parsed;
+}
+
+function buildDateRangeFilter(from?: string, to?: string, dateField?: "start" | "due" | "publish"): Prisma.TaskWhereInput | undefined {
   const fromDate = from ? parseDateInput(from) : null;
   const toDate = to ? parseDateInput(to) : null;
 
@@ -21,100 +40,98 @@ function buildDateRangeFilter(from?: string, to?: string): Prisma.TaskWhereInput
   if (fromDate) range.gte = fromDate;
   if (toDate) range.lte = toDate;
 
+  if (dateField === "start") {
+    return { startDate: range };
+  }
+
+  if (dateField === "due") {
+    return { dueDate: range };
+  }
+
+  if (dateField === "publish") {
+    return { publishDate: range };
+  }
+
   return {
     OR: [{ startDate: range }, { dueDate: range }, { publishDate: range }]
   };
 }
 
-function mapTask(task: Prisma.TaskGetPayload<{ include: { taskTypes: { include: { typeTag: true } } } }>): TaskListItem {
+function buildStatusFilter(status?: TaskFilterInput["status"]): Prisma.TaskWhereInput | undefined {
+  if (!status) return undefined;
+
+  if (status === "open") {
+    return {
+      NOT: {
+        status: "DONE"
+      }
+    };
+  }
+
   return {
-    id: task.id,
-    taskCode: task.taskCode,
-    topic: task.topic,
-    phaseRule: task.phaseRule,
-    owner: task.owner,
-    workLink: task.workLink,
-    status: task.status,
-    statusNormalized: task.statusNormalized,
-    notes: task.notes,
-    startDate: toDateOnlyIso(task.startDate),
-    dueDate: toDateOnlyIso(task.dueDate),
-    publishDate: toDateOnlyIso(task.publishDate),
-    types: task.taskTypes.map((item) => item.typeTag.name)
+    status
   };
 }
 
-export function getNextTaskCodeFromValues(taskCodes: string[]): string {
-  const matchingCodes = taskCodes
-    .map((taskCode) => {
-      const match = /^BS-(\d+)$/i.exec(taskCode.trim());
-      if (!match) return null;
-
-      return {
-        number: Number(match[1]),
-        width: match[1].length
-      };
-    })
-    .filter((value): value is { number: number; width: number } => value !== null);
-
-  if (matchingCodes.length === 0) {
-    return "BS-001";
+function buildOwnerFilter(ownerUserId?: string, ownerState?: "assigned" | "unassigned"): Prisma.TaskWhereInput | undefined {
+  if (ownerState === "unassigned") {
+    return {
+      ownerUserId: null
+    };
   }
 
-  const maxNumber = Math.max(...matchingCodes.map((item) => item.number));
-  const width = Math.max(3, ...matchingCodes.map((item) => item.width));
-
-  return `BS-${String(maxNumber + 1).padStart(width, "0")}`;
-}
-
-async function ensureTypeTagIds(names: string[]): Promise<number[]> {
-  const uniqueNames = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
-  const ids: number[] = [];
-
-  for (const name of uniqueNames) {
-    const tag = await prisma.typeTag.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-      select: { id: true }
-    });
-    ids.push(tag.id);
+  if (ownerState === "assigned") {
+    return {
+      NOT: { ownerUserId: null }
+    };
   }
 
-  return ids;
-}
+  if (!ownerUserId) return undefined;
 
-async function syncTaskTypes(taskId: string, typeTagIds: number[]) {
-  await prisma.taskType.deleteMany({ where: { taskId } });
-  if (!typeTagIds.length) return;
-
-  await prisma.taskType.createMany({
-    data: typeTagIds.map((typeTagId) => ({ taskId, typeTagId })),
-    skipDuplicates: true
-  });
-}
-
-function toMutationData(input: TaskMutationInput): Prisma.TaskUncheckedCreateInput {
   return {
-    taskCode: input.taskCode,
+    ownerUserId
+  };
+}
+
+type TaskWithType = Prisma.TaskGetPayload<{ include: { taskType: true; ownerUser: true } }>;
+
+function mapTask(task: TaskWithType): TaskListItem {
+  return {
+    id: task.id,
+    topic: task.topic,
+    taskTypeId: task.taskTypeId,
+    taskTypeName: task.taskType.name,
+    phaseRule: task.phaseRule,
+    ownerUserId: task.ownerUserId,
+    ownerDisplay: task.ownerUser ? getUserDisplayName(task.ownerUser.name, task.ownerUser.email) : null,
+    workLink: task.workLink,
+    status: task.status,
+    notes: task.notes,
+    startDate: toDateOnlyIso(task.startDate),
+    dueDate: toDateOnlyIso(task.dueDate),
+    publishDate: toDateOnlyIso(task.publishDate)
+  };
+}
+
+async function toMutationData(input: TaskMutationInput): Promise<Prisma.TaskUncheckedCreateInput> {
+  return {
     topic: input.topic,
+    taskTypeId: parseRequiredTaskTypeId(input.taskTypeId),
     phaseRule: cleanNullableString(input.phaseRule),
-    owner: cleanNullableString(input.owner),
+    ownerUserId: await ensureAssignableUserId(input.ownerUserId),
     workLink: cleanNullableString(input.workLink),
-    status: cleanNullableString(input.status),
-    statusNormalized: normalizeStatus(input.status),
+    status: input.status,
     notes: cleanNullableString(input.notes),
     startDate: parseDateInput(input.startDate),
     dueDate: parseDateInput(input.dueDate),
-    publishDate: parseDateInput(input.publishDate),
-    rawTypeText: cleanNullableString(input.rawTypeText)
+    publishDate: parseDateInput(input.publishDate)
   };
 }
 
 async function loadTask(taskId: string): Promise<TaskListItem> {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { taskTypes: { include: { typeTag: true } } }
+    include: { taskType: true, ownerUser: true }
   });
 
   if (!task) {
@@ -126,33 +143,34 @@ async function loadTask(taskId: string): Promise<TaskListItem> {
 
 export async function listTasks(rawFilters: TaskFilterInput = {}): Promise<TaskListItem[]> {
   const filters = taskFilterSchema.parse(rawFilters);
-  const dateFilter = buildDateRangeFilter(filters.from, filters.to);
+  const dateFilter = buildDateRangeFilter(filters.from, filters.to, filters.dateField);
+  const statusFilter = buildStatusFilter(filters.status);
+  const ownerFilter = buildOwnerFilter(filters.ownerUserId, filters.ownerState);
+  const taskTypeId = parseTaskTypeId(filters.taskTypeId);
 
   const where: Prisma.TaskWhereInput = {
     AND: [
+      filters.taskId ? { id: filters.taskId } : {},
       filters.q
         ? {
             OR: [
               { topic: { contains: filters.q } },
-              { taskCode: { contains: filters.q } },
-              { notes: { contains: filters.q } }
+              { notes: { contains: filters.q } },
+              { phaseRule: { contains: filters.q } },
+              {
+                ownerUser: {
+                  is: {
+                    OR: [{ name: { contains: filters.q } }, { email: { contains: filters.q } }]
+                  }
+                }
+              }
             ]
           }
         : {},
-      filters.owner ? { owner: { contains: filters.owner } } : {},
+      ownerFilter ?? {},
       filters.phaseRule ? { phaseRule: filters.phaseRule } : {},
-      filters.status ? { statusNormalized: normalizeStatus(filters.status) } : {},
-      filters.type
-        ? {
-            taskTypes: {
-              some: {
-                typeTag: {
-                  name: filters.type
-                }
-              }
-            }
-          }
-        : {},
+      statusFilter ?? {},
+      taskTypeId ? { taskTypeId } : {},
       dateFilter ?? {}
     ]
   };
@@ -160,76 +178,65 @@ export async function listTasks(rawFilters: TaskFilterInput = {}): Promise<TaskL
   const rows = await prisma.task.findMany({
     where,
     include: {
-      taskTypes: {
-        include: {
-          typeTag: true
-        }
-      }
+      taskType: true,
+      ownerUser: true
     },
-    orderBy: [{ publishDate: "asc" }, { dueDate: "asc" }, { startDate: "asc" }, { taskCode: "asc" }]
+    orderBy: [{ publishDate: "asc" }, { dueDate: "asc" }, { startDate: "asc" }, { topic: "asc" }]
   });
 
   return rows.map(mapTask);
 }
 
-export async function listTypeTags(): Promise<string[]> {
-  const tags = await prisma.typeTag.findMany({ orderBy: { name: "asc" } });
-  return tags.map((tag) => tag.name);
-}
-
-export async function getNextTaskCode(): Promise<string> {
-  const rows = await prisma.task.findMany({
+export async function listTaskTypes(): Promise<TaskTypeOption[]> {
+  return prisma.taskType.findMany({
+    orderBy: { name: "asc" },
     select: {
-      taskCode: true
+      id: true,
+      name: true
     }
   });
-
-  return getNextTaskCodeFromValues(rows.map((row) => row.taskCode));
 }
 
 export async function createTask(rawInput: unknown): Promise<TaskListItem> {
-  const input = taskMutationSchema.parse(rawInput);
-  const mutationData = toMutationData(input);
-  const typeNames = splitTypes(input.types);
-
-  const created = await prisma.task.create({ data: mutationData });
-  const typeIds = await ensureTypeTagIds(typeNames);
-  await syncTaskTypes(created.id, typeIds);
-
-  return loadTask(created.id);
+  try {
+    const input = taskMutationSchema.parse(rawInput);
+    const created = await prisma.task.create({ data: await toMutationData(input) });
+    return loadTask(created.id);
+  } catch (error) {
+    throw normalizeTaskMutationError(error);
+  }
 }
 
 export async function updateTask(taskId: string, rawInput: unknown): Promise<TaskListItem> {
-  const input = taskMutationSchema.parse(rawInput);
-  const mutationData = toMutationData(input);
-  const typeNames = splitTypes(input.types);
+  const trimmedTaskId = taskId.trim();
 
-  const updated = await prisma.task.update({
-    where: { id: taskId },
-    data: mutationData
-  });
+  if (!trimmedTaskId) {
+    throw taskNotFoundError();
+  }
 
-  const typeIds = await ensureTypeTagIds(typeNames);
-  await syncTaskTypes(updated.id, typeIds);
+  try {
+    const input = taskMutationSchema.parse(rawInput);
+    const updated = await prisma.task.update({
+      where: { id: trimmedTaskId },
+      data: await toMutationData(input)
+    });
 
-  return loadTask(updated.id);
+    return loadTask(updated.id);
+  } catch (error) {
+    throw normalizeTaskMutationError(error);
+  }
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
-  await prisma.task.delete({ where: { id: taskId } });
-}
+  const trimmedTaskId = taskId.trim();
 
-export async function upsertTaskByCode(rawInput: unknown): Promise<{ action: "created" | "updated"; task: TaskListItem }> {
-  const input = taskMutationSchema.parse(rawInput);
-  const existing = await prisma.task.findUnique({
-    where: { taskCode: input.taskCode }
-  });
-
-  if (existing) {
-    const task = await updateTask(existing.id, input);
-    return { action: "updated", task };
+  if (!trimmedTaskId) {
+    throw taskNotFoundError();
   }
 
-  const task = await createTask(input);
-  return { action: "created", task };
+  try {
+    await prisma.task.delete({ where: { id: trimmedTaskId } });
+  } catch (error) {
+    throw normalizeTaskMutationError(error);
+  }
 }

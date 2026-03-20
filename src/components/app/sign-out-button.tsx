@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
 
 type SignOutButtonProps = {
   email: string;
@@ -31,10 +32,10 @@ export function SignOutButton({ email }: SignOutButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" className="mt-4 w-full justify-start">
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-        </Button>
+        <SidebarMenuButton tooltip="Sign out" className="group-data-[collapsible=icon]:justify-center">
+          <LogOut />
+          <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
+        </SidebarMenuButton>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

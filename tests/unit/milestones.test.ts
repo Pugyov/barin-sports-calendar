@@ -6,18 +6,18 @@ describe("milestone derivation", () => {
     const tasks = [
       {
         id: "t1",
-        taskCode: "BS-001",
         topic: "Launch",
+        taskTypeId: 1,
+        taskTypeName: "Website",
         phaseRule: "Recurring",
-        owner: "owner@example.com",
+        ownerUserId: "user-1",
+        ownerDisplay: "Owner Example",
         workLink: null,
-        status: "Done",
-        statusNormalized: "done",
+        status: "DONE",
         notes: null,
         startDate: "2026-03-01",
         dueDate: "2026-03-05",
-        publishDate: "2026-03-10",
-        types: ["Website"]
+        publishDate: "2026-03-10"
       }
     ];
 
@@ -26,8 +26,9 @@ describe("milestone derivation", () => {
     expect(events.map((event) => event.kind)).toEqual(["START", "DUE", "PUB"]);
     expect(events[0]).toMatchObject({
       phaseRule: "Recurring",
-      owner: "owner@example.com",
-      status: "Done",
+      ownerUserId: "user-1",
+      ownerDisplay: "Owner Example",
+      status: "DONE",
       startDate: "2026-03-01",
       dueDate: "2026-03-05",
       publishDate: "2026-03-10"
@@ -38,18 +39,18 @@ describe("milestone derivation", () => {
     const tasks = [
       {
         id: "t2",
-        taskCode: "BS-002",
         topic: "Post",
+        taskTypeId: 2,
+        taskTypeName: "Social media post",
         phaseRule: null,
-        owner: null,
+        ownerUserId: null,
+        ownerDisplay: null,
         workLink: null,
-        status: null,
-        statusNormalized: "planned",
+        status: "PLANNED",
         notes: null,
         startDate: null,
         dueDate: null,
-        publishDate: "2026-04-01",
-        types: ["Social media post"]
+        publishDate: "2026-04-01"
       }
     ];
 
