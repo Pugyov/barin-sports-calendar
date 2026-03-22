@@ -11,20 +11,21 @@ export default async function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="inline-flex items-center rounded-2xl border bg-white px-3 py-2 shadow-sm">
+    <div className="flex min-h-[78vh] items-center justify-center">
+      <div className="w-full max-w-md space-y-6 app-fade-in">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="inline-flex items-center rounded-[calc(var(--radius)+0.35rem)] border border-white/70 bg-white px-4 py-3 shadow-sm">
             <Image src="/barin-redline-logo.png" alt="Barin Sports" width={72} height={72} priority className="h-12 w-auto" />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-xl font-semibold tracking-tight">Create your Barin Sports account</h1>
+          <div className="space-y-2">
+            <p className="workspace-kicker">Request Access</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Create your Barin Sports account</h1>
             <p className="text-sm text-muted-foreground">New accounts start as viewers and require admin approval before access is granted.</p>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border/70 bg-card/88">
             <CardTitle>Register</CardTitle>
             <CardDescription>Use your work details to request access.</CardDescription>
           </CardHeader>

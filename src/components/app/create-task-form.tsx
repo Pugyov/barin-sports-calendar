@@ -18,8 +18,8 @@ type CreateTaskFormProps = {
   assignableUsers: AssignableUserOption[];
 };
 
-const selectClassName = "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm";
-const sectionClassName = "rounded-2xl border bg-secondary/20 p-4 sm:p-5";
+const selectClassName = "field-select";
+const sectionClassName = "surface-subtle rounded-[calc(var(--radius)+0.1rem)] p-4 sm:p-5";
 
 export function CreateTaskForm({ taskTypes, assignableUsers }: CreateTaskFormProps) {
   const router = useRouter();
@@ -44,7 +44,8 @@ export function CreateTaskForm({ taskTypes, assignableUsers }: CreateTaskFormPro
 
       <section className={sectionClassName} aria-labelledby="create-task-basics-heading">
         <div className="mb-4 space-y-1">
-          <h3 id="create-task-basics-heading" className="text-sm font-semibold tracking-tight">
+          <p className="workspace-kicker">Section 01</p>
+          <h3 id="create-task-basics-heading" className="text-base font-semibold tracking-tight">
             Basics
           </h3>
           <p className="text-sm text-muted-foreground">Define the task identity, type, owner, and current status.</p>
@@ -103,7 +104,8 @@ export function CreateTaskForm({ taskTypes, assignableUsers }: CreateTaskFormPro
 
       <section className={sectionClassName} aria-labelledby="create-task-schedule-heading">
         <div className="mb-4 space-y-1">
-          <h3 id="create-task-schedule-heading" className="text-sm font-semibold tracking-tight">
+          <p className="workspace-kicker">Section 02</p>
+          <h3 id="create-task-schedule-heading" className="text-base font-semibold tracking-tight">
             Schedule
           </h3>
           <p className="text-sm text-muted-foreground">Set the milestone dates in the order the task moves through the pipeline.</p>
@@ -130,7 +132,8 @@ export function CreateTaskForm({ taskTypes, assignableUsers }: CreateTaskFormPro
 
       <section className={sectionClassName} aria-labelledby="create-task-details-heading">
         <div className="mb-4 space-y-1">
-          <h3 id="create-task-details-heading" className="text-sm font-semibold tracking-tight">
+          <p className="workspace-kicker">Section 03</p>
+          <h3 id="create-task-details-heading" className="text-base font-semibold tracking-tight">
             Details
           </h3>
           <p className="text-sm text-muted-foreground">Add supporting context and an optional work link when you have them.</p>
@@ -150,7 +153,8 @@ export function CreateTaskForm({ taskTypes, assignableUsers }: CreateTaskFormPro
         </div>
       </section>
 
-      <div className="flex border-t pt-4 sm:justify-end">
+      <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">Required fields: topic and task type.</p>
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? "Creating..." : "Create Task"}
         </Button>

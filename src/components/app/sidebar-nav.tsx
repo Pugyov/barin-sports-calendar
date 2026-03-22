@@ -51,7 +51,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
               isActive={isActive}
               size="lg"
               tooltip={item.label}
-              className="group-data-[collapsible=icon]:justify-center"
+              className="rounded-2xl px-3 group-data-[collapsible=icon]:justify-center"
             >
               <Link
                 href={item.href}

@@ -38,12 +38,16 @@ export async function MainNav() {
 
   return (
     <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader>
+      <SidebarHeader className="px-3 pb-3 pt-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" className="group-data-[collapsible=icon]:justify-center">
+            <SidebarMenuButton
+              asChild
+              size="lg"
+              className="min-h-14 rounded-2xl border border-sidebar-border/80 bg-sidebar/70 group-data-[collapsible=icon]:min-h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:shadow-none"
+            >
               <Link href="/">
-                <div className="inline-flex aspect-square size-10 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm">
+                <div className="inline-flex aspect-square size-10 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white shadow-sm transition-transform group-data-[collapsible=icon]:size-11">
                   <Image
                     src="/barin-redline-logo.png"
                     alt="Barin Sports Calendar"
@@ -64,7 +68,7 @@ export async function MainNav() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="px-3">
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarNav items={navItems} />
@@ -72,7 +76,7 @@ export async function MainNav() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="px-3 pb-4">
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>

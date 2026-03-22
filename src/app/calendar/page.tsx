@@ -50,8 +50,12 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
+      <div className="workspace-header app-fade-in">
+        <div className="space-y-2">
+          <p className="workspace-kicker">Schedule Workspace</p>
+          <h1 className="workspace-title">Calendar</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">Inspect milestone timing, filter the board, and drill into the selected day without leaving the calendar view.</p>
+        </div>
         <CalendarMonthSelector currentMonth={month} />
       </div>
 

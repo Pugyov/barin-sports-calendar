@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { useTheme } from "next-themes";
 import { BadgeCheck, ChevronsUpDown, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import {
   AlertDialog,
@@ -29,6 +28,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { useTheme } from "@/components/theme-provider";
 
 type SidebarAccountMenuProps = {
   email: string;
@@ -37,10 +37,16 @@ type SidebarAccountMenuProps = {
 };
 
 export function SidebarAccountMenu({ email, role, name }: SidebarAccountMenuProps) {
-  const { theme = "dark", setTheme } = useTheme();
+  const { theme = "light", setTheme } = useTheme();
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const displayName = name?.trim() || "Barin Sports user";
+
+  function handleThemeChange(value: string) {
+    if (value === "light" || value === "dark" || value === "system") {
+      setTheme(value);
+    }
+  }
 
   async function handleSignOut() {
     setIsSubmitting(true);
@@ -51,11 +57,11 @@ export function SidebarAccountMenu({ email, role, name }: SidebarAccountMenuProp
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <SidebarMenuButton tooltip="Account" className="group-data-[collapsible=icon]:justify-center">
-            <BadgeCheck />
+          <SidebarMenuButton tooltip="Account" className="rounded-2xl px-3 group-data-[collapsible=icon]:justify-center">
+            <BadgeCheck className="text-primary" />
             <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
               <span className="truncate font-medium">{displayName}</span>
-              <span className="truncate text-xs text-muted-foreground">{role.toUpperCase()}</span>
+              <span className="truncate text-xs uppercase tracking-[0.18em] text-muted-foreground">{role}</span>
             </div>
             <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
@@ -74,7 +80,7 @@ export function SidebarAccountMenu({ email, role, name }: SidebarAccountMenuProp
               Theme
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+              <DropdownMenuRadioGroup value={theme} onValueChange={handleThemeChange}>
                 <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>

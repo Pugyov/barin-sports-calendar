@@ -15,9 +15,9 @@ import type { AssignableUserOption, MilestoneEvent, TaskTypeOption } from "@/typ
 const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 const milestoneChipStyles: Record<MilestoneEvent["kind"], string> = {
-  DUE: "border-amber-300/70 bg-amber-100 text-amber-950 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-100",
-  PUB: "border-emerald-300/70 bg-emerald-100 text-emerald-950 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-100",
-  START: "border-sky-300/70 bg-sky-100 text-sky-950 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-sky-100"
+  DUE: "border-amber-300/60 bg-amber-500/10 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/18 dark:text-amber-100",
+  PUB: "border-emerald-300/60 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/16 dark:text-emerald-100",
+  START: "border-sky-300/60 bg-sky-500/10 text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-sky-100"
 };
 
 type CalendarGridProps = {
@@ -66,9 +66,7 @@ function renderAgendaGroups(
     <div key={group.kind} className="space-y-2">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{group.label}</h4>
-        <Badge variant="secondary" className="rounded-full">
-          {group.events.length}
-        </Badge>
+        <Badge variant="secondary">{group.events.length}</Badge>
       </div>
       <div className="space-y-2">
         {group.events.map((event) => {
@@ -82,8 +80,8 @@ function renderAgendaGroups(
               onClick={() => onSelect(event)}
               onDoubleClick={() => onOpen(event)}
               aria-label={`Focus ${event.topic}`}
-              className={`w-full rounded-2xl border p-3 text-left transition-colors ${
-                isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40 hover:bg-accent/40"
+              className={`w-full rounded-[calc(var(--radius)+0.05rem)] border p-3 text-left transition-colors ${
+                isActive ? "border-primary/45 bg-primary/5 shadow-sm" : "border-border/70 bg-background/85 hover:border-primary/35 hover:bg-accent/35"
               }`}
             >
               <div className="flex flex-wrap items-center gap-2">
@@ -108,14 +106,14 @@ function renderAgendaGroups(
 function EventDetails({ event }: { event: MilestoneEvent | null }) {
   if (!event) {
     return (
-      <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+      <div className="rounded-[calc(var(--radius)+0.05rem)] border border-dashed p-4 text-sm text-muted-foreground">
         Select an item to inspect its dates, notes, and pipeline link.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 rounded-3xl border bg-background p-4">
+    <div className="surface-subtle space-y-4 rounded-[calc(var(--radius)+0.15rem)] p-4">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className={milestoneChipStyles[event.kind]}>{milestoneLabels[event.kind]}</Badge>
@@ -127,40 +125,40 @@ function EventDetails({ event }: { event: MilestoneEvent | null }) {
       </div>
 
       <div className="grid gap-3 text-sm sm:grid-cols-3">
-        <div className="rounded-2xl border bg-secondary/30 p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Start</div>
           <div className="mt-1 font-medium">{event.startDate ? format(parseISO(event.startDate), "MMM d, yyyy") : "Not set"}</div>
         </div>
-        <div className="rounded-2xl border bg-secondary/30 p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Due</div>
           <div className="mt-1 font-medium">{event.dueDate ? format(parseISO(event.dueDate), "MMM d, yyyy") : "Not set"}</div>
         </div>
-        <div className="rounded-2xl border bg-secondary/30 p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Publish</div>
           <div className="mt-1 font-medium">{event.publishDate ? format(parseISO(event.publishDate), "MMM d, yyyy") : "Not set"}</div>
         </div>
       </div>
 
       <div className="grid gap-3 text-sm sm:grid-cols-2">
-        <div className="rounded-2xl border p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Phase Rule</div>
           <div className="mt-1 font-medium">{event.phaseRule ?? "Not set"}</div>
         </div>
-        <div className="rounded-2xl border p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Relevant Milestone</div>
           <div className="mt-1 font-medium">{getRelevantDateLabel(event)}</div>
         </div>
       </div>
 
       {event.notes ? (
-        <div className="rounded-2xl border p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Notes</div>
           <div className="mt-1 text-sm leading-6">{event.notes}</div>
         </div>
       ) : null}
 
       {event.workLink ? (
-        <div className="rounded-2xl border p-3">
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Work Link</div>
           <div className="mt-1 truncate text-sm font-medium">{event.workLink}</div>
         </div>
@@ -234,8 +232,8 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b bg-card/90">
+      <Card className="app-fade-in overflow-hidden">
+        <CardHeader className="border-b border-border/70 bg-card/88">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-1">
@@ -246,7 +244,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                 <Badge className={milestoneChipStyles.DUE}>Due</Badge>
                 <Badge className={milestoneChipStyles.PUB}>Publish</Badge>
                 <Badge className={milestoneChipStyles.START}>Start</Badge>
-                <Badge variant="outline" className="border-red-400/40 text-red-500 dark:text-red-300">
+                <Badge variant="outline" className="border-red-400/40 text-red-600 dark:text-red-300">
                   Overdue open work
                 </Badge>
               </div>
@@ -255,11 +253,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
             <form className="grid gap-3 md:grid-cols-[12rem_12rem_12rem_auto_auto]">
               <input type="hidden" name="month" value={month} />
               <input type="hidden" name="selectedDate" value={model.selectedDate} />
-              <select
-                name="ownerUserId"
-                defaultValue={filters.ownerUserId ?? ""}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              >
+              <select name="ownerUserId" defaultValue={filters.ownerUserId ?? ""} className="field-select">
                 <option value="">All owners</option>
                 <option value="unassigned">Unassigned</option>
                 {assignableUsers.map((user) => (
@@ -268,11 +262,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                   </option>
                 ))}
               </select>
-              <select
-                name="status"
-                defaultValue={filters.status ?? ""}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              >
+              <select name="status" defaultValue={filters.status ?? ""} className="field-select">
                 <option value="">All statuses</option>
                 <option value="open">Open</option>
                 {TASK_STATUS_VALUES.map((status) => (
@@ -281,11 +271,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                   </option>
                 ))}
               </select>
-              <select
-                name="taskTypeId"
-                defaultValue={filters.taskTypeId ?? ""}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              >
+              <select name="taskTypeId" defaultValue={filters.taskTypeId ?? ""} className="field-select">
                 <option value="">All task types</option>
                 {taskTypes.map((taskType) => (
                   <option key={taskType.id} value={taskType.id}>
@@ -315,10 +301,10 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
               <div className="grid grid-cols-7 gap-2">
                 {model.days.map((day) => {
                   const selected = day.isSelected;
-                  const baseTone = day.inMonth ? "bg-card text-foreground" : "bg-muted/40 text-muted-foreground";
-                  const activeTone = selected ? "border-primary bg-primary/5 shadow-sm" : "border-border";
-                  const overdueTone = day.hasOverdueOpen ? "ring-1 ring-red-400/60" : "";
-                  const todayTone = day.isToday ? "border-sky-400/50" : "";
+                  const baseTone = day.inMonth ? "bg-card/82 text-foreground" : "bg-muted/35 text-muted-foreground";
+                  const activeTone = selected ? "border-primary/40 bg-primary/5 shadow-sm" : "border-border/70";
+                  const overdueTone = day.hasOverdueOpen ? "ring-1 ring-red-400/50" : "";
+                  const todayTone = day.isToday ? "border-sky-400/40" : "";
 
                   return (
                     <div
@@ -333,15 +319,11 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                       role="button"
                       tabIndex={0}
                       aria-label={`Select ${format(parseISO(day.date), "MMMM d, yyyy")}`}
-                      className={`min-h-40 rounded-3xl border p-3 text-left transition-colors ${baseTone} ${activeTone} ${overdueTone} ${todayTone}`}
+                      className={`min-h-40 rounded-[calc(var(--radius)+0.3rem)] border p-3 text-left transition-colors ${baseTone} ${activeTone} ${overdueTone} ${todayTone}`}
                     >
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold">{format(parseISO(day.date), "d")}</span>
-                        {day.events.length > 0 ? (
-                          <Badge variant={selected ? "default" : "secondary"} className="rounded-full">
-                            {day.events.length}
-                          </Badge>
-                        ) : null}
+                        {day.events.length > 0 ? <Badge variant={selected ? "default" : "secondary"}>{day.events.length}</Badge> : null}
                       </div>
 
                       <div className="space-y-2">
@@ -367,9 +349,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                         ))}
 
                         {day.overflowCount > 0 ? (
-                          <div className="rounded-2xl border border-dashed px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            +{day.overflowCount} more
-                          </div>
+                          <div className="rounded-2xl border border-dashed px-2 py-1.5 text-xs font-medium text-muted-foreground">+{day.overflowCount} more</div>
                         ) : null}
                       </div>
                     </div>
@@ -378,8 +358,8 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
               </div>
             </div>
 
-            <Card className="h-full rounded-3xl border bg-secondary/20">
-              <CardHeader className="border-b">
+            <Card className="h-full rounded-[calc(var(--radius)+0.35rem)] border border-border/70 bg-secondary/25">
+              <CardHeader className="border-b border-border/70">
                 <CardTitle data-testid="selected-day-title">{format(parseISO(model.selectedDay.date), "EEEE, MMMM d")}</CardTitle>
                 <CardDescription>
                   {model.selectedDay.events.length > 0
@@ -412,7 +392,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                     onClick={() => selectDate(day.date)}
                     aria-label={`Jump to ${format(parseISO(day.date), "MMMM d, yyyy")}`}
                     className={`min-w-fit rounded-full border px-3 py-2 text-left text-sm transition-colors ${
-                      day.date === model.selectedDate ? "border-primary bg-primary/5 text-foreground" : "border-border bg-background text-muted-foreground"
+                      day.date === model.selectedDate ? "border-primary/40 bg-primary/5 text-foreground" : "border-border/70 bg-background/80 text-muted-foreground"
                     } ${day.hasOverdueOpen ? "ring-1 ring-red-400/60" : ""}`}
                   >
                     <div className="font-medium">{format(parseISO(day.date), "MMM d")}</div>
@@ -430,10 +410,12 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <CardTitle className="text-base">{day.label}</CardTitle>
-                      <CardDescription>{day.count} milestone{day.count === 1 ? "" : "s"}</CardDescription>
+                      <CardDescription>
+                        {day.count} milestone{day.count === 1 ? "" : "s"}
+                      </CardDescription>
                     </div>
                     {day.hasOverdueOpen ? (
-                      <Badge variant="outline" className="border-red-400/40 text-red-500 dark:text-red-300">
+                      <Badge variant="outline" className="border-red-400/40 text-red-600 dark:text-red-300">
                         Overdue
                       </Badge>
                     ) : null}
@@ -446,7 +428,7 @@ function CalendarGridBody({ month, events, taskTypes, assignableUsers, filters, 
                       type="button"
                       onClick={() => handleOpenMobileEvent(event)}
                       aria-label={`Open details for ${event.topic}`}
-                      className="w-full rounded-2xl border bg-background p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                      className="w-full rounded-2xl border border-border/70 bg-background/85 p-3 text-left transition-colors hover:border-primary/35 hover:bg-accent/30"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={milestoneChipStyles[event.kind]}>{milestoneLabels[event.kind]}</Badge>

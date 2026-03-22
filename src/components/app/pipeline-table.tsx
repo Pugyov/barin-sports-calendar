@@ -1,3 +1,5 @@
+"use client";
+
 import { NotebookPen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskActionsMenu } from "@/components/app/task-actions-menu";
@@ -16,7 +18,7 @@ type PipelineTableProps = {
 export function PipelineTable({ tasks, taskTypes, assignableUsers, writable }: PipelineTableProps) {
   return (
     <TooltipProvider delayDuration={150}>
-      <Table>
+      <Table className="min-w-[860px]">
         <TableHeader>
           <TableRow>
             <TableHead>Topic</TableHead>
@@ -31,16 +33,16 @@ export function PipelineTable({ tasks, taskTypes, assignableUsers, writable }: P
         </TableHeader>
         <TableBody>
           {tasks.map((task) => (
-            <TableRow key={task.id}>
+            <TableRow key={task.id} className="border-border/70 hover:bg-secondary/25">
               <TableCell className="max-w-sm">
                 <div className="space-y-2">
-                  <div className="line-clamp-2 font-medium">{task.topic}</div>
+                  <div className="line-clamp-2 font-medium leading-6">{task.topic}</div>
                   {task.notes ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                          className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-secondary/35 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-accent-foreground"
                           aria-label={`View notes for ${task.topic}`}
                         >
                           <NotebookPen className="h-3.5 w-3.5" />
@@ -58,13 +60,17 @@ export function PipelineTable({ tasks, taskTypes, assignableUsers, writable }: P
               <TableCell>
                 <Badge variant="secondary">{task.taskTypeName}</Badge>
               </TableCell>
-              <TableCell>{task.ownerDisplay ?? "-"}</TableCell>
-              <TableCell>{getTaskStatusLabel(task.status)}</TableCell>
-              <TableCell>{task.startDate ?? "-"}</TableCell>
-              <TableCell>{task.dueDate ?? "-"}</TableCell>
-              <TableCell>{task.publishDate ?? "-"}</TableCell>
+              <TableCell className="text-sm text-foreground/85">{task.ownerDisplay ?? "-"}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-[10px]">
+                  {getTaskStatusLabel(task.status)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">{task.startDate ?? "-"}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{task.dueDate ?? "-"}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{task.publishDate ?? "-"}</TableCell>
               {writable ? (
-                <TableCell>
+                <TableCell className="w-[72px]">
                   <TaskActionsMenu task={task} taskTypes={taskTypes} assignableUsers={assignableUsers} />
                 </TableCell>
               ) : null}

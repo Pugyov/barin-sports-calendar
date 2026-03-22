@@ -20,16 +20,19 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {session?.user ? (
             <SidebarProvider defaultOpen>
               <MainNav />
               <SidebarInset>
-                <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur md:px-6">
-                  <SidebarTrigger className="-ml-1" />
-                  <div className="text-sm font-medium text-muted-foreground">Barin Sports Marketing Calendar</div>
+                <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border/70 bg-background/88 px-4 backdrop-blur-xl md:px-6">
+                  <SidebarTrigger className="-ml-1 text-muted-foreground" />
+                  <div className="min-w-0 app-fade-in">
+                    <div className="workspace-kicker">Barin Sports</div>
+                    <div className="truncate text-sm font-medium text-foreground/88">Marketing Calendar Workspace</div>
+                  </div>
                 </header>
-                <div className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</div>
+                <div className="min-w-0 flex-1 px-4 py-5 md:px-8 md:py-8">{children}</div>
               </SidebarInset>
             </SidebarProvider>
           ) : (

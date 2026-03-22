@@ -41,7 +41,7 @@ export function SignInForm() {
     <form action={onSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required autoComplete="email" />
+        <Input id="email" name="email" type="email" required autoComplete="email" placeholder="name@barinsports.com" />
       </div>
 
       <div className="space-y-2">
@@ -55,7 +55,7 @@ export function SignInForm() {
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="border-t border-border/70 pt-4 text-center text-sm text-muted-foreground">
         Need access?{" "}
         <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
           Register here
